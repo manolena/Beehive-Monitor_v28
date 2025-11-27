@@ -1,0 +1,46 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Telemetry Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <h1>Telemetry (latest)</h1>
+  <div>
+    <button id="refresh">Refresh</button>
+  </div>
+  <pre id="raw"></pre>
+  <canvas id="chart" width="800" height="300"></canvas>
+
+<script>
+async function load() {
+  const res = await fetch('/api/telemetry?limit=50');
+  const data = await res.json();
+  document.getElementById('raw').textContent = JSON.stringify(data, null, 2);
+
+  // Example: plot field1 over time if exists
+  const labels = data.map(d => d.ts).reverse();
+  const values = data.map(d => (d.fields.field1 !== undefined ? Number(d.fields.field1) : null)).reverse();
+  const ctx = document.getElementById('chart').getContext('2d');
+  if (window._chart) window._chart.destroy();
+  window._chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'field1',
+        data: values,
+        borderColor: 'blue',
+        fill: false
+      }]
+    },
+    options: {}
+  });
+}
+
+document.getElementById('refresh').addEventListener('click', load);
+load();
+</script>
+</body>
+</html>
