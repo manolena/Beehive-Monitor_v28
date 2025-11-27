@@ -74,13 +74,13 @@
 
 // Dual WiFi compile-time defaults (can be overridden via build)
 #ifndef WIFI_SSID1
-#define WIFI_SSID1 "Redmi Note 13"
-#define WIFI_PASS1 "nen57asz5g44sh2"
+#define WIFI_SSID1 " "
+#define WIFI_PASS1 " "
 #endif
 
 #ifndef WIFI_SSID2
-#define WIFI_SSID2 "COSMOTE-32bssa"
-#define WIFI_PASS2 "vudvvc5x97s4afpk"
+#define WIFI_SSID2 " "
+#define WIFI_PASS2 " "
 #endif
 
 // Single global Preferences instance is defined in one .cpp (weather_manager.cpp).
