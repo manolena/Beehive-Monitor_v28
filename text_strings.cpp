@@ -79,71 +79,71 @@ const char* getTextEN(TextId id) {
 // Greek strings (ALL CAPS). Use UTF-8 escapes where present.
 const char* getTextGR(TextId id) {
   switch (id) {
-    case TXT_STATUS:             return "ΚΑΤΑΣΤΑΣΗ"; // ΚΑΤΑΣΤΑΣΗ
-    case TXT_TIME:               return "ΩΡΑ"; // ΩΡΑ
-    case TXT_MEASUREMENTS:       return "ΜΕΤΡΗΣΕΙΣ"; // ΜΕΤΡΗΣΕΙΣ
-    case TXT_WEATHER:            return "ΚΑΙΡΟΣ"; // ΚΑΙΡΟΣ
-    case TXT_CONNECTIVITY:       return "ΣΥΝΔΕΣΙΜΟΤΗΤΑ"; // ΣΥΝΔΕΣΙΜΟΤΗΤΑ
-    case TXT_PROVISION:          return "ΠΡΟΒΛΕΨΗ"; // ΠΑΡΟΦΟΡΙΣΗ (approx)
-    case TXT_CALIBRATION:        return "ΒΑΘΜΟΝΟΜΗΣΗ"; // ΒΑΘΜΟΝΟΜΗΣΗ
-    case TXT_LANGUAGE:           return "ΓΛΩΣΣΑ"; // ΓΛΩΣΣΑ
-    case TXT_SD_INFO:            return "ΠΛΗΡΟΦΟΡΙΕΣ SD"; // ΠΛΗΡΟΦ. SD
-    case TXT_BACK:               return "ΠΙΣΩ"; // ΠΙΣΩ
+    case TXT_STATUS:             return "ΚΑΤΑΣΤΑΣΗ"; // STATUS
+    case TXT_TIME:               return "ΩΡΑ"; // TIME
+    case TXT_MEASUREMENTS:       return "ΜΕΤΡΗΣΕΙΣ"; // MEASUREMENTS
+    case TXT_WEATHER:            return "ΚΑΙΡΟΣ"; // WEATHER
+    case TXT_CONNECTIVITY:       return "ΣΥΝΔΕΣΙΜΟΤΗΤΑ"; // CONNECTIVITY
+    case TXT_PROVISION:          return "ΠΡΟΒΛΕΨΗ"; // PROVISION
+    case TXT_CALIBRATION:        return "ΒΑΘΜΟΝΟΜΗΣΗ"; // CALIBRATION
+    case TXT_LANGUAGE:           return "ΓΛΩΣΣΑ"; // LANGUAGE
+    case TXT_SD_INFO:            return "ΠΛΗΡΟΦΟΡΙΕΣ SD"; // INFORMATION SD
+    case TXT_BACK:               return "ΠΙΣΩ"; // BACK
 
-    case TXT_FETCHING_WEATHER:   return "ΛΑΜΒΑΝΕΙ ΚΑΙΡΟ"; // TAPWNEI KAIROS (approx)
-    case TXT_WEATHER_NO_DATA:    return "ΟΧΙ ΔΕΔΟΜΕΝΑ ΚΑΙΡΟΥ"; // ΚΑΙΡΟΣ: ΔΕΝ ΔΕΤΑ (approx)
-    case TXT_LAST_FETCH:         return "ΤΕΛΕΥΤΑΙΟΣ ΚΑΙΡΟΣ"; // placeholder
-    case TXT_PRESS_ANY:          return "ΠΑΤΗΣΕ ΚΟΥΜΠΙ"; // PRESS ANY
+    case TXT_FETCHING_WEATHER:   return "ΛΑΜΒΑΝΕΙ ΚΑΙΡΟ"; // FETCHING WEATHER
+    case TXT_WEATHER_NO_DATA:    return "ΟΧΙ ΔΕΔΟΜΕΝΑ ΚΑΙΡΟΥ"; // NO WEATHER DATA
+    case TXT_LAST_FETCH:         return "ΤΕΛΕΥΤΑΙΟΣ ΚΑΙΡΟΣ"; // LAST FETCH
+    case TXT_PRESS_ANY:          return "ΠΑΤΗΣΕ ΚΟΥΜΠΙ"; // PRESS ANY KEY
     case TXT_PRESS_SELECT:       return "ΠΑΤΗΣΕ SEL"; // PRESS SELECT (keeps 'SEL' ASCII)
 
-    case TXT_ENTER_API_KEY:      return "ΕΙΣΑΓ. ΑΡΙ SEL=ΕΠΟΜ"; // placeholder
-    case TXT_KEY_STORED:         return "ΑΡΙ ΑΠΟΘΗΚΕΥΤΗΚΕ"; // placeholder
-    case TXT_KEY_STORED_VERIFY:  return "ΕΠΑΛΗΘΕΥΣΗ ΑΡΙ"; // placeholder
-    case TXT_CANCELLED:          return "ΑΚΥΡΩΣΗ"; // ΑΚΥΡΩΣΗ
-    case TXT_ENTER_CITY:         return "ΕΙΣΑΓΩΓΗ ΠΟΛΗΣ"; // ΕΙΣΑΓΕ ΠΟΛΗ
-    case TXT_ENTER_COUNTRY:      return "ΕΙΣΑΓΩΓΗ ΧΩΡΑΣ"; // ΕΙΣΑΓΕ ΧΩΡΑ
-    case TXT_GEOCODE_SAVED:      return "ΑΠΟΘΗΚΕΥΤΗΚΕ GEOLOC"; // GEO SAVED
-    case TXT_GEOCODE_FAILED:     return "ΣΦΑΛΜΑ GEOLOC"; // GEO FAILED
+    case TXT_ENTER_API_KEY:      return "ΕΙΣΑΓ. ΑΡΙ SEL=ΕΠΟΜ"; // ENTER API KEY
+    case TXT_KEY_STORED:         return "ΑΡΙ ΑΠΟΘΗΚΕΥΤΗΚΕ"; // KEY STORED
+    case TXT_KEY_STORED_VERIFY:  return "ΕΠΑΛΗΘΕΥΣΗ ΑΡΙ"; // VERIFY STORED KEY
+    case TXT_CANCELLED:          return "ΑΚΥΡΩΣΗ"; // CANCELLED
+    case TXT_ENTER_CITY:         return "ΕΙΣΑΓΩΓΗ ΠΟΛΗΣ"; // ENTER CITY
+    case TXT_ENTER_COUNTRY:      return "ΕΙΣΑΓΩΓΗ ΧΩΡΑΣ"; // ENTER COUNTRY
+    case TXT_GEOCODE_SAVED:      return "ΑΠΟΘΗΚΕΥΤΗΚΕ GEOLOC"; // GEOCODE SAVED
+    case TXT_GEOCODE_FAILED:     return "ΣΦΑΛΜΑ GEOLOC"; // GEOCODE FAILED
     case TXT_VERIFYING_KEY:      return "ΕΠΑΛΗΘΕΥΣΗ ΑΡΙ..."; // VERIFYING KEY
 
-    case TXT_WEIGHT:             return "ΒΑΡΟΣ:"; // ΒΑΡΟΣ:
-    case TXT_T_INT:              return "ΕΣΩΤ. ΘΕΡΜ.:"; // ΘΕΡΜ. ΕΣΩ:
-    case TXT_H_INT:              return "ΕΣΩΤ. ΥΓΡΑΣΙΑ:"; // ΥΓΡ. ΕΣΩ:
-    case TXT_T_EXT:              return "ΕΞΩΤ. ΘΕΡΜ.:"; // ΘΕΡΜ. ΕΞΩ:
-    case TXT_H_EXT:              return "ΕΞΩΤ. ΥΓΡΑΣΙΑ:"; // ΥΓΡ. ΕΞΩ:
-    case TXT_PRESSURE:           return "ΑΤΜ. ΠΙΕΣΗ:"; // ΠΙΕΣ.:
-    case TXT_ACCEL:              return "Χ,Υ,Ζ:"; // ΕΠΙΤ:
+    case TXT_WEIGHT:             return "ΒΑΡΟΣ:"; // WEIGHT:
+    case TXT_T_INT:              return "ΕΣΩΤ. ΘΕΡΜ.:"; // INTERIOR TEMP:
+    case TXT_H_INT:              return "ΕΣΩΤ. ΥΓΡΑΣΙΑ:"; // INTERIOR HUMIDITY:
+    case TXT_T_EXT:              return "ΕΞΩΤ. ΘΕΡΜ.:"; // EXTERIOR TEMP:
+    case TXT_H_EXT:              return "ΕΞΩΤ. ΥΓΡΑΣΙΑ:"; // EXTERIOR HUMIDITY:
+    case TXT_PRESSURE:           return "ΑΤΜ. ΠΙΕΣΗ:"; // PRESSURE:
+    case TXT_ACCEL:              return "Χ,Υ,Ζ:"; // ACCELEROMETER:
 
-    case TXT_TARE:               return "ΜΗΔΕΝΙΣΜΟΣ ΑΠΟΒΑΡΟΥ"; // ΜΗΔΕΝΙΣΜΟΣ
-    case TXT_CALIBRATE_KNOWN:    return "ΒΑΘΜΟΝΟΜΗΣΗ"; // ΒΑΘΜΟΝΟΜΗΣΗ
-    case TXT_RAW_VALUE:          return "RAW ΤΙΜΗ"; // RAW ΤΙΜΗ
-    case TXT_SAVE_FACTOR:        return "ΑΠΟΘΗΚΕΥΣΗ FACTOR"; // ΑΠΟΘΗΚΕΥΣΗ
-    case TXT_TARE_DONE:          return "ΑΠΟΒΑΡΟ OK";
-    case TXT_CALIBRATION_DONE:   return "ΒΑΘΜΟΝΟΜΗΣΗ OK";
-    case TXT_FACTOR_SAVED:       return "FACTOR ΑΠΟΘΗΚΕΥΤΗΚΕ";
+    case TXT_TARE:               return "ΜΗΔΕΝΙΣΜΟΣ ΑΠΟΒΑΡΟΥ"; // TARE
+    case TXT_CALIBRATE_KNOWN:    return "ΒΑΘΜΟΝΟΜΗΣΗ"; // CALIBRATION KNOWN
+    case TXT_RAW_VALUE:          return "RAW ΤΙΜΗ"; // RAW VALUE
+    case TXT_SAVE_FACTOR:        return "ΑΠΟΘΗΚΕΥΣΗ FACTOR"; // SAVE FACTOR
+    case TXT_TARE_DONE:          return "ΑΠΟΒΑΡΟ OK"; //TARE DONE
+    case TXT_CALIBRATION_DONE:   return "ΒΑΘΜΟΝΟΜΗΣΗ OK"; //CALIBRATION DONE
+    case TXT_FACTOR_SAVED:       return "FACTOR ΑΠΟΘΗΚΕΥΤΗΚΕ"; //FACTOR SAVED
 
     // New calibration helper Greek strings
-    case TXT_TARE_PROMPT:        return "ΑΦΑΙΡΕΣΤΕ ΒΑΡΗ"; // ΑΦΑΙΡΕΣΤΕ ΒΑΡΗ
-    case TXT_PLACE_WEIGHT:       return "ΒΑΛΤΕ ΓΝΩΣΤΟ ΒΑΡΟΣ"; // ΒΑΛΤΕ ΤΟ ΒΑΡΟΣ
-    case TXT_MEASURING:          return "ΜΕΤΡΗΣΗ ΒΑΡΟΥΣ..."; // ΜΕΤΡΩΣΗ...
-    case TXT_SAVE_FAILED:        return "ΣΦΑΛΜΑ ΑΠΟΘΗΚΕΥΣΗΣ"; // ΣΦΑΛΜΑ ΑΠΟΘΗΚΕΥΣΗΣ
-    case TXT_NO_CALIBRATION:     return "ΔΕΝ ΒΑΘΜΟΝΟΜΗΘΗΚΕ"; // ΔΕΝ ΣΤΑΤΙΜΑ ΚΑΛΙΠΡΑ (approx)
+    case TXT_TARE_PROMPT:        return "ΑΦΑΙΡΕΣΤΕ ΒΑΡΗ"; // REMOVE WEIGHT
+    case TXT_PLACE_WEIGHT:       return "ΒΑΛΤΕ ΓΝΩΣΤΟ ΒΑΡΟΣ"; // PLACE KNOWN WEIGHT
+    case TXT_MEASURING:          return "ΜΕΤΡΗΣΗ ΒΑΡΟΥΣ..."; // MEASURING...
+    case TXT_SAVE_FAILED:        return "ΣΦΑΛΜΑ ΑΠΟΘΗΚΕΥΣΗΣ"; // SAVE FAILED
+    case TXT_NO_CALIBRATION:     return "ΔΕΝ ΒΑΘΜΟΝΟΜΗΘΗΚΕ"; // NO CALIBRATION
 
-    case TXT_WIFI_CONNECTED:     return "WiFi: ΣΥΝΔΕΘΗΚΕ"; // WiFi: ΣΥΝΔΕΣΗ
-    case TXT_LTE_REGISTERED:     return "LTE: ΣΤΟ ΔΙΚΤΥΟ ΟΚ"; // LTE: ΕΝΔΙΣΗ
-    case TXT_NO_CONNECTIVITY:    return "ΔΕΝ ΥΠΑΡΧΕΙ ΣΥΝΔΕΣΗ"; // ΔΕΝ ΣΥΝΔΕΣΗ
+    case TXT_WIFI_CONNECTED:     return "WiFi: ΣΥΝΔΕΘΗΚΕ"; // WiFi: CONNECTED
+    case TXT_LTE_REGISTERED:     return "LTE: ΣΤΟ ΔΙΚΤΥΟ ΟΚ"; // LTE: REGISTERED
+    case TXT_NO_CONNECTIVITY:    return "ΔΕΝ ΥΠΑΡΧΕΙ ΣΥΝΔΕΣΗ"; // NO CONNECTIVITY
     case TXT_SSID:               return "SSID:";
     case TXT_RSSI:               return "RSSI:";
     case TXT_MODE:               return "MODE:";
 
-    case TXT_SD_CARD_INFO:       return "ΠΛΗΡΟΦΟΡΙΕΣ SD"; // ΠΛΗΡΟΦ. SD
-    case TXT_SD_OK:              return "ΚΑΡΤΑ SD OK"; // ΚΑΡΤΑ OK
-    case TXT_NO_CARD:            return "ΔΕΝ ΥΠΑΡΧΕΙ SD"; // ΔΕΝ ΚΑΡΤΑ
+    case TXT_SD_CARD_INFO:       return "ΠΛΗΡΟΦΟΡΙΕΣ SD"; // INFORMATION SD
+    case TXT_SD_OK:              return "ΚΑΡΤΑ SD OK"; // SD OK
+    case TXT_NO_CARD:            return "ΔΕΝ ΥΠΑΡΧΕΙ SD"; // NO SD
 
     case TXT_LANGUAGE_EN:        return "LANGUAGE: ENGLISH   ";
     case TXT_LANGUAGE_GR:        return "ΓΛΩΣΣΑ: ΕΛΛΗΝΙΚΑ";
 
-    case TXT_BACK_SMALL:         return "< ΠΙΣΩ"; // < ΠΙΣΩ
+    case TXT_BACK_SMALL:         return "< ΠΙΣΩ"; // < BACK
     case TXT_OK:                 return "OK";
     case TXT_ERROR:              return "\u039a\u0391\u03a4\u0391\u03a3\u03a4\u0391\u03a3\u0397"; // ΚΑΤΑΣΤΑΣΗ (placeholder)
 
