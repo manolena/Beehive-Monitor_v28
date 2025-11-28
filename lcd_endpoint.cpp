@@ -124,7 +124,8 @@ static String html_page = R"rawliteral(
         <div class="row" id="r2">                    </div>
         <div class="row" id="r3">                    </div>
       </div>
-      <div class="labelRow">Device LCD 2 × 20 — updates every 250 ms</div>
+      <div class="labelRow">Device LCD 4 × 20 — updates every 250 ms</div>
+      <div class="labelRow">Manos Mar 2025</div>
     </div>
   </div>
 
