@@ -45,7 +45,7 @@ static String html_page = R"rawliteral(
 
   .status { margin-top:8px; font-size:13px; color:#006600; }
 
-  /* LCD emulator (2x20 / up to 4 lines) */
+  /* LCD emulator (4x20 / up to 4 lines) */
   .lcd-wrap { max-width:100%; margin:18px auto; display:flex; flex-direction:column; align-items:center; }
   .lcd { width:560px; max-width:100%; background:var(--lcd-bg); color:var(--lcd-line); border-radius:8px; padding:18px;
          box-shadow: inset 0 0 12px rgba(0,0,0,0.6), 0 6px 20px rgba(0,0,0,0.12); border: 1px solid rgba(255,255,255,0.06); }
@@ -116,7 +116,7 @@ static String html_page = R"rawliteral(
   </div>
 
   <div class="panel">
-    <div class="sectionTitle">LCD Mirror (2x20)</div>
+    <div class="sectionTitle">LCD Mirror (4x20)</div>
     <div class="lcd-wrap">
       <div class="lcd" id="lcdScreen" role="region" aria-label="LCD mirror">
         <div class="row" id="r0">                    </div>
