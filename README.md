@@ -1,12 +1,12 @@
-# 🐝 Beehive Monitor v29
+# 🐝 Beehive Monitor v28
 
-[![Version](https://img.shields.io/badge/version-29-blue.svg)](https://github.com/yourusername/beehive-monitor)
+[![Version](https://img.shields.io/badge/version-28-blue.svg)](https://github.com/yourusername/beehive-monitor)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-ESP32-orange.svg)](https://www.espressif.com/en/products/socs/esp32)
 
 A comprehensive IoT beehive monitoring system with dual connectivity (WiFi/LTE), multi-language support, and cloud integration.
 
-![Beehive Monitor](https://via.placeholder.com/800x400.png?text=Beehive+Monitor+v29)
+![Beehive Monitor](https://via.placeholder.com/800x400.png?text=Beehive+Monitor+v28)
 
 ---
 
@@ -347,8 +347,8 @@ Main Menu
 
 ### Project Structure
 ```
-BeehiveMonitor_29/
-├── BeehiveMonitor_29.ino      # Main sketch
+BeehiveMonitor_28/
+├── BeehiveMonitor_28.ino      # Main sketch
 ├── config.h                    # Configuration and pin definitions
 ├── ui.cpp / ui.h               # LCD and button handling
 ├── menu_manager.cpp / .h       # Menu system
@@ -380,7 +380,7 @@ arduino-cli upload -p /dev/ttyUSB0 --fqbn esp32:esp32:esp32 BeehiveMonitor_29.in
 
 See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 
-**Current Version: v29** (2025-11-30)
+**Current Version: v28** (2025-11-28)
 
 ### Recent Updates
 - Fixed Greek translations in Weather menu
@@ -411,7 +411,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 👥 Authors
 
 - **Original Author** - Initial work
-- **AI Assistant** - v26-v29 improvements and documentation
+- **AI Assistant** - v26-v28 improvements and documentation
 
 ---
 
