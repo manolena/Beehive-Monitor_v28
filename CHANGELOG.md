@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [v29] - 2025-11-30
+## [v28] - 2025-11-28
 
 ### ✨ Added
 - **SD Card Data Logging**: Comprehensive sensor data logging
@@ -385,3 +385,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ---
 
 **For detailed technical documentation, see [README.md](README.md)**
+
