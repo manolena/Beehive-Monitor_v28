@@ -90,7 +90,8 @@ static uint32_t greek_map_to_upper(uint32_t cp) {
   }
 
   // If not Greek small letter, attempt ASCII uppercase for latin letters
-  if (cp >= 'a' && cp <= 'z') return (uint32_t) (cp - ('a' - 'A'));
+  // if (cp >= 'a' && cp <= 'z') return (uint32_t) (cp - ('a' - 'A'));
+  // CHANGE: Do NOT uppercase ASCII. Respect the case defined in strings (e.g. hPa, WiFi).
 
   // Otherwise, return unchanged
   return cp;

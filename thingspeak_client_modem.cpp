@@ -2,6 +2,10 @@
 #include "config.h"
 #include "modem_manager.h"
 #include <TinyGsmClient.h>
+#include <WebServer.h>
+
+extern WebServer server;
+extern void menuUpdate(); // Keep keyboard responsive
 
 // Exposed function used by serial command handler to POST via modem.
 // Returns true on success (ThingSpeak returns numeric id > 0).
@@ -39,14 +43,18 @@ bool thingspeak_post_via_modem(const String &postBody) {
 
   unsigned long start = millis();
   String resp;
-  while (millis() - start < 8000) {
-    while (client.available()) {
+  while (millis() - start < 15000) { // Increased timeout to 15s
+    if (client.available()) {
       char c = client.read();
       resp += c;
       if (resp.length() > 4096) break;
+    } else {
+      if (!client.connected()) break; // Stop if server closed connection
+      delay(10);
     }
-    if (resp.length()) break;
-    delay(50);
+    
+    server.handleClient();  // Keep web server responsive
+    menuUpdate();           // Keep keyboard responsive!
   }
 
   client.stop();

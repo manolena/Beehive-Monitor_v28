@@ -207,10 +207,44 @@ int16_t modem_getRSSI()
 }
 
 // ---------------------------------------------------------
+// ---------------------------------------------------------
 // Operator name
 // ---------------------------------------------------------
-String modem_getOperator()
-{
+String modem_getOperator() {
     TinyGsm &modem = modem_get();
-    return modem.getOperator();
+    return modem_isNetworkRegistered() ? modem.getOperator() : String("No Net");
+}
+
+// ---------------------------------------------------------
+// GPS Implementation
+// ---------------------------------------------------------
+bool modem_enableGPS(bool enable) {
+    TinyGsm &modem = modem_get();
+    if (enable) {
+        return modem.enableGPS();
+    } else {
+        return modem.disableGPS();
+    }
+}
+
+bool modem_getGPS(double &lat, double &lon) {
+    TinyGsm &modem = modem_get();
+    
+    // Simple check to see if modem is responsive first?
+    // No, that adds more delay.
+    
+    float fLat = 0, fLon = 0;
+    uint8_t status = 0;
+    float speed=0, alt=0, accuracy=0;
+    int vsat=0, usat=0, year=0, month=0, day=0, hour=0, min=0, sec=0;
+    
+    // This call can block for up to 2s (default TinyGSM timeout)
+    // We can't easily interrupt it.
+    bool ok = modem.getGPS(&status, &fLat, &fLon, &speed, &alt, &vsat, &usat, &accuracy, &year, &month, &day, &hour, &min, &sec);
+    
+    if (ok) {
+        lat = (double)fLat;
+        lon = (double)fLon;
+    }
+    return ok;
 }

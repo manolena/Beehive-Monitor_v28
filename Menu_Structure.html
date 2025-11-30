@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beehive Monitor v29 - Menu Structure</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: white;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #4a90e2;
+        }
+
+        .header h1 {
+            color: #4a90e2;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header .subtitle {
+            color: #666;
+            font-size: 1.2em;
+        }
+
+        .section {
+            margin: 30px 0;
+            page-break-inside: avoid;
+        }
+
+        h2 {
+            color: #4a90e2;
+            font-size: 1.8em;
+            margin: 25px 0 15px 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        h3 {
+            color: #e67e22;
+            font-size: 1.4em;
+            margin: 20px 0 10px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        th {
+            background: #4a90e2;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        tr:hover {
+            background: #f0f7ff;
+        }
+
+        .calibration-table th {
+            background: #e67e22;
+        }
+
+        .menu-tree {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            line-height: 1.8;
+        }
+
+        .menu-tree .main-item {
+            color: #4a90e2;
+            font-weight: bold;
+        }
+
+        .menu-tree .sub-item {
+            color: #e67e22;
+            font-weight: bold;
+        }
+
+        .screen-box {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            margin: 15px 0;
+            font-size: 0.9em;
+            border: 3px solid #34495e;
+        }
+
+        .navigation-flow {
+            background: #e8f4f8;
+            padding: 15px;
+            border-left: 4px solid #4a90e2;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+
+        .button-ref {
+            display: inline-block;
+            background: #4a90e2;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            margin: 2px;
+            font-weight: bold;
+        }
+
+        .note {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .feature-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #4a90e2;
+        }
+
+        .feature-card h4 {
+            color: #4a90e2;
+            margin-bottom: 8px;
+        }
+
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #e0e0e0;
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        @media print {
+            body {
+                padding: 0;
+            }
+
+            .no-print {
+                display: none;
+            }
+
+            .section {
+                page-break-inside: avoid;
+            }
+
+            h2 {
+                page-break-after: avoid;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>🐝 Beehive Monitor v29</h1>
+        <div class="subtitle">Complete Menu Structure Documentation</div>
+        <div class="subtitle" style="font-size: 0.9em; margin-top: 10px;">English / Ελληνικά</div>
+    </div>
+
+    <div class="no-print"
+        style="background: #d4edda; padding: 15px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #c3e6cb;">
+        <strong>📄 To Save as PDF:</strong>
+        <ol style="margin-left: 20px; margin-top: 10px;">
+            <li>Press <kbd>Ctrl+P</kbd> (or <kbd>Cmd+P</kbd> on Mac)</li>
+            <li>Select "Save as PDF" or "Microsoft Print to PDF" as the printer</li>
+            <li>Click "Save" and choose your location</li>
+        </ol>
+    </div>
+
+    <div class="section">
+        <h2>📊 Menu Tree Structure</h2>
+        <div class="menu-tree">Main Menu / Κύριο Μενού<br>
+            ├── <span class="main-item">1. STATUS / ΚΑΤΑΣΤΑΣΗ</span><br>
+            ├── <span class="main-item">2. TIME / ΩΡΑ</span><br>
+            ├── <span class="main-item">3. MEASUREMENTS / ΜΕΤΡΗΣΕΙΣ</span> (3 pages)<br>
+            ├── <span class="main-item">4. WEATHER / ΚΑΙΡΟΣ</span><br>
+            ├── <span class="main-item">5. CONNECTIVITY / ΣΥΝΔΕΣΙΜΟΤΗΤΑ</span><br>
+            ├── <span class="main-item">6. DATA SENDING / ΑΠΟΣΤΟΛΗ ΔΕΔΟΜΕΝΩΝ</span><br>
+            ├── <span class="main-item">7. PROVISION / ΠΡΟΒΛΕΨΗ</span><br>
+            ├── <span class="main-item">8. CALIBRATION / ΒΑΘΜΟΝΟΜΗΣΗ</span> → Submenu<br>
+            │ ├── <span class="sub-item">1. TARE / ΜΗΔΕΝΙΣΜΟΣ ΑΠΟΒΑΡΟΥ</span><br>
+            │ ├── <span class="sub-item">2. CALIBRATE / ΒΑΘΜΟΝΟΜΗΣΗ</span><br>
+            │ ├── <span class="sub-item">3. RAW VALUE / RAW ΤΙΜΗ</span><br>
+            │ ├── <span class="sub-item">4. SAVE FACTOR / ΑΠΟΘΗΚΕΥΣΗ FACTOR</span><br>
+            │ └── <span class="sub-item">5. BACK / ΠΙΣΩ</span><br>
+            ├── <span class="main-item">9. LANGUAGE / ΓΛΩΣΣΑ</span><br>
+            ├── <span class="main-item">10. SD INFO / ΠΛΗΡΟΦΟΡΙΕΣ SD</span><br>
+            └── <span class="main-item">11. BACK / ΠΙΣΩ</span></div>
+    </div>
+
+    <div class="section">
+        <h2>📋 Main Menu Items (11 Items)</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>English</th>
+                    <th>Greek (Ελληνικά)</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td><strong>STATUS</strong></td>
+                    <td><strong>ΚΑΤΑΣΤΑΣΗ</strong></td>
+                    <td>Screen</td>
+                    <td>Date/time, GPS coordinates, weight, battery</td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td><strong>TIME</strong></td>
+                    <td><strong>ΩΡΑ</strong></td>
+                    <td>Screen</td>
+                    <td>Current date and time (auto-updates every 1s)</td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td><strong>MEASUREMENTS</strong></td>
+                    <td><strong>ΜΕΤΡΗΣΕΙΣ</strong></td>
+                    <td>Multi-page</td>
+                    <td>3 pages: Weight/T_INT, T_EXT/H_EXT, Accelerometer</td>
+                </tr>
+                <tr>
+                    <td>4</td>
+                    <td><strong>WEATHER</strong></td>
+                    <td><strong>ΚΑΙΡΟΣ</strong></td>
+                    <td>Multi-page</td>
+                    <td>3-day forecast, 6-hour intervals, Open-Meteo API</td>
+                </tr>
+                <tr>
+                    <td>5</td>
+                    <td><strong>CONNECTIVITY</strong></td>
+                    <td><strong>ΣΥΝΔΕΣΙΜΟΤΗΤΑ</strong></td>
+                    <td>Screen</td>
+                    <td>WiFi/LTE status, network selection</td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td><strong>DATA SENDING</strong></td>
+                    <td><strong>ΑΠΟΣΤΟΛΗ ΔΕΔΟΜΕΝΩΝ</strong></td>
+                    <td>Selector</td>
+                    <td>ThingSpeak upload interval configuration</td>
+                </tr>
+                <tr>
+                    <td>7</td>
+                    <td><strong>PROVISION</strong></td>
+                    <td><strong>ΠΡΟΒΛΕΨΗ</strong></td>
+                    <td>Screen</td>
+                    <td>Configure location (geocode city/country)</td>
+                </tr>
+                <tr>
+                    <td>8</td>
+                    <td><strong>CALIBRATION</strong></td>
+                    <td><strong>ΒΑΘΜΟΝΟΜΗΣΗ</strong></td>
+                    <td><strong>Submenu</strong></td>
+                    <td>Opens calibration submenu (5 items)</td>
+                </tr>
+                <tr>
+                    <td>9</td>
+                    <td><strong>LANGUAGE</strong></td>
+                    <td><strong>ΓΛΩΣΣΑ</strong></td>
+                    <td>Toggle</td>
+                    <td>Switch between English ⟷ Greek</td>
+                </tr>
+                <tr>
+                    <td>10</td>
+                    <td><strong>SD INFO</strong></td>
+                    <td><strong>ΠΛΗΡΟΦΟΡΙΕΣ SD</strong></td>
+                    <td>Screen</td>
+                    <td>SD card status display</td>
+                </tr>
+                <tr>
+                    <td>11</td>
+                    <td><strong>BACK</strong></td>
+                    <td><strong>ΠΙΣΩ</strong></td>
+                    <td>Exit</td>
+                    <td>Return to main screen</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2>⚙️ Calibration Submenu (5 Items)</h2>
+        <table class="calibration-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>English</th>
+                    <th>Greek (Ελληνικά)</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td><strong>TARE</strong></td>
+                    <td><strong>ΜΗΔΕΝΙΣΜΟΣ ΑΠΟΒΑΡΟΥ</strong></td>
+                    <td>Action</td>
+                    <td>Zero the scale (remove weights, calculate offset)</td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td><strong>CALIBRATE</strong></td>
+                    <td><strong>ΒΑΘΜΟΝΟΜΗΣΗ</strong></td>
+                    <td>Action</td>
+                    <td>Calibrate with known weight (calculate factor)</td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td><strong>RAW VALUE</strong></td>
+                    <td><strong>RAW ΤΙΜΗ</strong></td>
+                    <td>Screen</td>
+                    <td>Display current raw sensor reading</td>
+                </tr>
+                <tr>
+                    <td>4</td>
+                    <td><strong>SAVE FACTOR</strong></td>
+                    <td><strong>ΑΠΟΘΗΚΕΥΣΗ FACTOR</strong></td>
+                    <td>Screen</td>
+                    <td>Display saved calibration factor and offset</td>
+                </tr>
+                <tr>
+                    <td>5</td>
+                    <td><strong>BACK</strong></td>
+                    <td><strong>ΠΙΣΩ</strong></td>
+                    <td>Exit</td>
+                    <td>Return to main menu</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2>🎮 Button Controls</h2>
+        <div style="text-align: center; margin: 20px 0;">
+            <span class="button-ref">UP</span> Navigate up / Previous item / Increase value<br>
+            <span class="button-ref">DOWN</span> Navigate down / Next item / Decrease value<br>
+            <span class="button-ref">SELECT</span> Confirm / Enter submenu / Execute action<br>
+            <span class="button-ref">BACK</span> Cancel / Exit / Return to previous menu
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>🗺️ Navigation Flow</h2>
+        <div class="navigation-flow">
+            <h3 style="margin-top: 0;">Main Menu Navigation</h3>
+            <ul style="list-style: none; padding-left: 20px;">
+                <li>• <strong>UP/DOWN</strong> → Navigate items (1-11, circular)</li>
+                <li>• <strong>SELECT</strong> → Enter selected item</li>
+                <li>• <strong>BACK</strong> → Exit to main screen</li>
+            </ul>
+        </div>
+        <div class="navigation-flow">
+            <h3 style="margin-top: 0;">Calibration Submenu Navigation</h3>
+            <ul style="list-style: none; padding-left: 20px;">
+                <li>• <strong>UP/DOWN</strong> → Navigate items (1-5, circular)</li>
+                <li>• <strong>SELECT</strong> → Enter selected item</li>
+                <li>• <strong>BACK</strong> → Return to Main Menu</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>📺 Screen Examples</h2>
+
+        <h3>STATUS Screen</h3>
+        <div class="screen-box">
+            DD-MM-YYYY HH:MM:SS &lt;- Auto-updates<br>
+            LAT: XX.XXXX<br>
+            LON: XX.XXXX<br>
+            WEIGHT: XX.X kg
+        </div>
+
+        <h3>TIME Screen</h3>
+        <div class="screen-box">
+            DATE: DD-MM-YYYY<br>
+            TIME: HH:MM:SS &lt;- Updates every 1s<br>
+            <br>
+            &lt; BACK
+        </div>
+
+        <h3>WEATHER Screen</h3>
+        <div class="screen-box">
+            DD-MM HH:MM<br>
+            Clear / ΑΙΘΡΙΟΣ<br>
+            T:XX.X°C H:XX%<br>
+            P:XXXXhPa &lt; BACK
+        </div>
+
+        <h3>DATA SENDING Screen</h3>
+        <div class="screen-box">
+            DATA SENDING<br>
+            INTERVAL: 60 min &lt;- UP/DOWN to change<br>
+            UP/DOWN change<br>
+            SEL=Save BACK=Exit
+        </div>
+        <p><strong>Available Intervals:</strong> 1min, 5min, 15min, 30min, 60min, 2hrs, 6hrs, Daily</p>
+    </div>
+
+    <div class="section">
+        <h2>✨ Key Features</h2>
+        <div class="features-grid">
+            <div class="feature-card">
+                <h4>🌍 Bilingual Support</h4>
+                <p>Complete English and Greek interface with instant language switching</p>
+            </div>
+            <div class="feature-card">
+                <h4>📡 Dual Connectivity</h4>
+                <p>WiFi and LTE with automatic failover and user-selectable preference</p>
+            </div>
+            <div class="feature-card">
+                <h4>🌤️ Weather Integration</h4>
+                <p>3-day forecast via Open-Meteo API with geocoding support</p>
+            </div>
+            <div class="feature-card">
+                <h4>🚨 Alarm System</h4>
+                <p>Motion detection via accelerometer with SMS alerts</p>
+            </div>
+            <div class="feature-card">
+                <h4>☁️ Cloud Sync</h4>
+                <p>ThingSpeak integration with configurable upload intervals</p>
+            </div>
+            <div class="feature-card">
+                <h4>⚖️ Calibration</h4>
+                <p>Professional scale calibration with tare and known weight methods</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>📝 Technical Notes</h2>
+        <div class="note">
+            <strong>Display:</strong> 20x4 LCD with I2C interface (address 0x27)<br>
+            <strong>Greek Characters:</strong> Custom CGRAM-based rendering<br>
+            <strong>Network Indicator:</strong> Top-right corner (row 0, columns 16-19)<br>
+            <strong>Auto-Updates:</strong> STATUS and TIME screens refresh automatically<br>
+            <strong>Data Persistence:</strong> Settings saved to NVS (non-volatile storage)<br>
+            <strong>Web Interface:</strong> Real-time LCD mirror at http://&lt;device-ip&gt;/
+        </div>
+    </div>
+
+    <div class="footer">
+        <strong>Beehive Monitor v29</strong><br>
+        Documentation Date: 2025-11-30<br>
+        Platform: ESP32 | Languages: English / Ελληνικά<br>
+        <em>Made with ❤️ for beekeepers</em>
+    </div>
+</body>
+
+</html>

@@ -6,7 +6,10 @@
 #include "modem_manager.h"
 
 #include <WiFi.h>
+#include <WebServer.h>
 #include <LiquidCrystal_I2C.h>
+
+extern WebServer server;
 #include <Preferences.h>
 #include "safe_freertos.h"
 #include "freertos/semphr.h"
@@ -16,26 +19,63 @@
 // LCD instance (address may be 0x27)
 LiquidCrystal_I2C lcd(0x27, 20, 4);
 
-// exported globals
+// exported globals (visible from ui.h)
 SemaphoreHandle_t lcdMutex = NULL;
 int currentLanguage = LANG_EN;
 QueueHandle_t beepQueue = NULL;
 
-// forward declarations (getButton is implemented below)
+// forward declarations (helpers)
 static String prepareTextForCol(const String &in, uint8_t col);
 static void replaceWebLineSegment(uint8_t row, uint8_t col, const String &seg);
 static void writeSegToLcdAndMirror(uint8_t col, uint8_t row, const String &seg);
 void initGreekChars();
 static void buzzerTask(void *pv);
 
+// Prototype for beepBuzzer so buzzerTask can call it (defined below)
+void beepBuzzer(unsigned long hz, unsigned long ms);
+
 // ----------------------- helpers -----------------------
+// Helper: truncate string to at most maxVisualChars codepoints (preserve UTF-8 boundaries).
+static String truncateToVisualChars(const String &s, size_t maxVisualChars) {
+    size_t v = 0;
+    size_t i = 0;
+    const size_t len = s.length();
+    while (i < len && v < maxVisualChars) {
+        uint8_t b = (uint8_t)s[i];
+        size_t charBytes = 1;
+        if ((b & 0x80) == 0x00) charBytes = 1;
+        else if ((b & 0xE0) == 0xC0) charBytes = 2;
+        else if ((b & 0xF0) == 0xE0) charBytes = 3;
+        else if ((b & 0xF8) == 0xF0) charBytes = 4;
+        // if incomplete sequence at end, stop before it
+        if (i + charBytes > len) break;
+        i += charBytes;
+        v++;
+    }
+    return s.substring(0, i);
+}
+
+// Ensure string uppercasing for Greek and then truncate/pad to fit available visual cols starting at `col`.
 static String prepareTextForCol(const String &in, uint8_t col) {
     String s = in;
     if (currentLanguage == LANG_GR) s = greekToUpper(s);
     uint8_t avail = (col < 20) ? (20 - col) : 0;
-    if (s.length() > avail) s = s.substring(0, avail);
-    while (s.length() < avail) s += ' ';
-    return s;
+    if (avail == 0) return String("");
+
+    // Truncate by visual characters (codepoints), not bytes
+    String truncated = truncateToVisualChars(s, avail);
+
+    // Count visual chars of truncated (codepoints)
+    size_t vLen = 0;
+    for (size_t i = 0; i < truncated.length(); ++i) {
+        uint8_t b = (uint8_t)truncated[i];
+        if ((b & 0xC0) != 0x80) vLen++;
+    }
+
+    // Pad with ASCII spaces to reach avail visual chars
+    while (vLen < avail) { truncated += ' '; vLen++; }
+
+    return truncated;
 }
 
 static void replaceWebLineSegment(uint8_t row, uint8_t col, const String &seg) {
@@ -64,7 +104,7 @@ static void writeSegToLcdAndMirror(uint8_t col, uint8_t row, const String &seg) 
       uint8_t b = (uint8_t)*p;
       // UTF-8 degree (0xC2 0xB0)
       if (b == 0xC2 && (uint8_t)p[1] == 0xB0) {
-        // send the pre-baked degree glyph in CGRAM: use lcd.write(223) as required
+        // write degree glyph in CGRAM
         lcd.write((uint8_t)223);
         webSeg += (char)0xC2; webSeg += (char)0xB0;
         p += 2; printed++; continue;
@@ -75,7 +115,7 @@ static void writeSegToLcdAndMirror(uint8_t col, uint8_t row, const String &seg) 
         webSeg += (char)0xC2; webSeg += (char)0xB0;
         p++; printed++; continue;
       }
-      // Greek two-byte sequences fallback: handled by lcdPrintGreek when needed
+      // Greek two-byte sequences fallback to '?' here — proper mapping in lcdPrintGreek
       if (b == 0xCE || b == 0xCF) {
         lcd.write((uint8_t)'?'); webSeg += '?';
         if (p[1]) p += 2; else p++;
@@ -138,9 +178,21 @@ void uiPrint(uint8_t col, uint8_t row, const char *msg) {
     if (col >= 20) return;
     String seg = prepareTextForCol(String(msg), col);
     if (currentLanguage == LANG_GR) {
+        // Use greek-aware printer that maps to LCD and mirrors properly
         lcdPrintGreek(seg.c_str(), col, row);
     } else {
         ui_safePrintAt(col, row, seg);
+    }
+}
+
+// Force-refresh helper: rewrite the current internal 4-line buffer to trigger web mirror update.
+// This is the new function used by menu screens to guarantee immediate mirror refresh.
+void uiRefreshMirror() {
+    for (uint8_t row = 0; row < 4; ++row) {
+        String line = lcd_get_line_simple(row);
+        while (line.length() < 20) line += ' ';
+        // write back same line to ensure any web mirror listeners get the update
+        lcd_set_line_simple(row, line);
     }
 }
 
@@ -152,9 +204,7 @@ void uiClear() {
       lcd.clear();
     }
 
-    for (uint8_t i = 0; i < 4; ++i) {
-        lcd_set_line_simple(i, String("                    "));
-    }
+    for (uint8_t i = 0; i < 4; ++i) lcd_set_line_simple(i, String("                    "));
 }
 
 void ui_setMarkerCharAtRow(uint8_t row, char ch) {
@@ -174,9 +224,6 @@ void ui_setMarkerCharAtRow(uint8_t row, char ch) {
 }
 
 // ----------------------- Greek / degree printing -----------------------
-// --------------------------------------------------
-// GREEK CHAR SYSTEM
-// --------------------------------------------------
 void initGreekChars() {
   byte Gamma[8]  = { B11111, B10000, B10000, B10000, B10000, B10000, B10000, B00000 };
   byte Delta[8]  = { B00100, B01010, B10001, B10001, B10001, B10001, B11111, B00000 };
@@ -197,50 +244,137 @@ void initGreekChars() {
   lcd.createChar(7, Omega);
 }
 
+// Updated lcdPrintGreek that also mirrors the UTF-8 input to the web mirror.
 void lcdPrintGreek(const char *utf8str, uint8_t col, uint8_t row) {
-    lcd.setCursor(col, row);
+    if (col >= 20 || row >= 4) return;
     const char *p = utf8str;
+    uint8_t avail = (col < 20) ? (20 - col) : 0;
+    if (avail == 0) return;
 
-    while (*p) {
-        if ((uint8_t)*p == 0xCE || (uint8_t)*p == 0xCF) {
-            uint8_t first = (uint8_t)*p;
-            p++;
-            uint8_t second = (uint8_t)*p;
+    String webSeg; webSeg.reserve(avail);
+    uint8_t printed = 0;
 
-            if (first == 0xCE) {
-                switch (second) {
-                    case 0x91: lcd.write('A'); break;      // Α
-                    case 0x92: lcd.write('B'); break;      // Β
-                    case 0x93: lcd.write((uint8_t)0); break; // Γ
-                    case 0x94: lcd.write((uint8_t)1); break; // Δ
-                    case 0x95: lcd.write('E'); break;      // Ε
-                    case 0x96: lcd.write('Z'); break;      // Ζ
-                    case 0x97: lcd.write('H'); break;      // Η
-                    case 0x98: lcd.write(242); break;      // Θ
-                    case 0x99: lcd.write('I'); break;      // Ι
-                    case 0x9A: lcd.write('K'); break;      // Κ
-                    case 0x9B: lcd.write((uint8_t)2); break; // Λ
-                    case 0x9C: lcd.write('M'); break;      // Μ
-                    case 0x9D: lcd.write('N'); break;      // Ν
-                    case 0x9E: lcd.write((uint8_t)3); break; // Ξ
-                    case 0x9F: lcd.write('O'); break;      // Ο
-                    case 0xA0: lcd.write((uint8_t)4); break; // Π
-                    case 0xA1: lcd.write('P'); break;      // Ρ
-                    case 0xA3: lcd.write(246); break;      // Σ
-                    case 0xA4: lcd.write('T'); break;      // Τ
-                    case 0xA5: lcd.write('Y'); break;      // Υ
-                    case 0xA6: lcd.write((uint8_t)5); break; // Φ
-                    case 0xA7: lcd.write('X'); break;      // Χ
-                    case 0xA8: lcd.write((uint8_t)6); break; // Ψ
-                    case 0xA9: lcd.write((uint8_t)7); break; // Ω
-                    default: lcd.write('?'); break;
-                }
+#define APPEND2(a,b) do { webSeg += (char)(a); webSeg += (char)(b); } while(0)
+
+    if (safeSemaphoreTake(lcdMutex, pdMS_TO_TICKS(200), "lcdPrintGreek")) {
+        lcd.setCursor(col, row);
+        while (*p && printed < avail) {
+            uint8_t b = (uint8_t)*p;
+
+            // UTF-8 degree (0xC2 0xB0)
+            if (b == 0xC2 && (uint8_t)p[1] == 0xB0) {
+                lcd.write((uint8_t)223);
+                APPEND2(0xC2,0xB0);
+                p += 2; printed++; continue;
             }
-        } else {
-            lcd.write(*p);
+            // single-byte degree 0xB0
+            if (b == 0xB0) {
+                lcd.write((uint8_t)223);
+                APPEND2(0xC2,0xB0);
+                p++; printed++; continue;
+            }
+            // Greek two-byte sequences
+            if (b == 0xCE || b == 0xCF) {
+                uint8_t first = (uint8_t)*p;
+                uint8_t second = (uint8_t)p[1];
+                // append original UTF-8 bytes to webSeg
+                if (p[1]) APPEND2(first, second); else webSeg += (char)first;
+                // map to LCD bytes as original implementation
+                if (first == 0xCE) {
+                    switch (second) {
+                        case 0x91: lcd.write('A'); break;      // Α
+                        case 0x92: lcd.write('B'); break;      // Β
+                        case 0x93: lcd.write((uint8_t)0); break; // Γ
+                        case 0x94: lcd.write((uint8_t)1); break; // Δ
+                        case 0x95: lcd.write('E'); break;      // Ε
+                        case 0x96: lcd.write('Z'); break;      // Ζ
+                        case 0x97: lcd.write('H'); break;      // Η
+                        case 0x98: lcd.write(242); break;      // Θ
+                        case 0x99: lcd.write('I'); break;      // Ι
+                        case 0x9A: lcd.write('K'); break;      // Κ
+                        case 0x9B: lcd.write((uint8_t)2); break; // Λ
+                        case 0x9C: lcd.write('M'); break;      // Μ
+                        case 0x9D: lcd.write('N'); break;      // Ν
+                        case 0x9E: lcd.write((uint8_t)3); break; // Ξ
+                        case 0x9F: lcd.write('O'); break;      // Ο
+                        case 0xA0: lcd.write((uint8_t)4); break; // Π
+                        case 0xA1: lcd.write('P'); break;      // Ρ
+                        case 0xA3: lcd.write(246); break;      // Σ
+                        case 0xA4: lcd.write('T'); break;      // Τ
+                        case 0xA5: lcd.write('Y'); break;      // Υ
+                        case 0xA6: lcd.write((uint8_t)5); break; // Φ
+                        case 0xA7: lcd.write('X'); break;      // Χ
+                        case 0xA8: lcd.write((uint8_t)6); break; // Ψ
+                        case 0xA9: lcd.write((uint8_t)7); break; // Ω
+                        default: lcd.write('?'); break;
+                    }
+                } else {
+                    // CF starting sequences mapping (fallback to '?')
+                    lcd.write('?');
+                }
+                p += (p[1] ? 2 : 1);
+                printed++;
+                continue;
+            }
+
+            // normal single-byte ASCII
+            lcd.write((uint8_t)b);
+            webSeg += *p;
+            p++; printed++;
         }
-        p++;
+        safeSemaphoreGive(lcdMutex, "lcdPrintGreek");
+    } else {
+        // fallback unprotected
+        lcd.setCursor(col, row);
+        while (*p && printed < avail) {
+            uint8_t b = (uint8_t)*p;
+            if (b == 0xC2 && (uint8_t)p[1] == 0xB0) {
+                lcd.write((uint8_t)223);
+                APPEND2(0xC2,0xB0);
+                p += 2; printed++; continue;
+            }
+            if (b == 0xB0) {
+                lcd.write((uint8_t)223);
+                APPEND2(0xC2,0xB0);
+                p++; printed++; continue;
+            }
+            if (b == 0xCE || b == 0xCF) {
+                uint8_t first = (uint8_t)*p;
+                uint8_t second = (uint8_t)p[1];
+                if (p[1]) APPEND2(first, second); else webSeg += (char)first;
+                if (first == 0xCE) {
+                    switch (second) {
+                        case 0x91: lcd.write('A'); break; case 0x92: lcd.write('B'); break;
+                        case 0x93: lcd.write((uint8_t)0); break; case 0x94: lcd.write((uint8_t)1); break;
+                        case 0x95: lcd.write('E'); break; case 0x96: lcd.write('Z'); break;
+                        case 0x97: lcd.write('H'); break; case 0x98: lcd.write(242); break;
+                        case 0x99: lcd.write('I'); break; case 0x9A: lcd.write('K'); break;
+                        case 0x9B: lcd.write((uint8_t)2); break; case 0x9C: lcd.write('M'); break;
+                        case 0x9D: lcd.write('N'); break; case 0x9E: lcd.write((uint8_t)3); break;
+                        case 0x9F: lcd.write('O'); break; case 0xA0: lcd.write((uint8_t)4); break;
+                        case 0xA1: lcd.write('P'); break; case 0xA3: lcd.write(246); break;
+                        case 0xA4: lcd.write('T'); break; case 0xA5: lcd.write('Y'); break;
+                        case 0xA6: lcd.write((uint8_t)5); break; case 0xA7: lcd.write('X'); break;
+                        case 0xA8: lcd.write((uint8_t)6); break; case 0xA9: lcd.write((uint8_t)7); break;
+                        default: lcd.write('?'); break;
+                    }
+                } else {
+                    lcd.write('?');
+                }
+                p += (p[1] ? 2 : 1);
+                printed++;
+                continue;
+            }
+            lcd.write((uint8_t)b);
+            webSeg += *p;
+            p++; printed++;
+        }
     }
+
+    // pad and write mirror
+    while (webSeg.length() < avail) webSeg += ' ';
+    replaceWebLineSegment(row, col, webSeg);
+#undef APPEND2
 }
 
 void lcdPrintGreek_P(const __FlashStringHelper *str, uint8_t col, uint8_t row) {
@@ -257,6 +391,13 @@ void uiUpdateNetworkIndicator() {
 }
 
 // ----------------------- Buzzer task + init -----------------------
+typedef struct {
+  unsigned long hz;
+  unsigned long ms;
+  uint8_t repeat;
+  unsigned long gap_ms;
+} BeepReq;
+
 static void buzzerTask(void *pv) {
   BeepReq req;
   for (;;) {
@@ -389,16 +530,17 @@ void showSplashScreen() {
     if (currentLanguage == LANG_EN) {
         uiPrint_P(0, 0, F("===================="));
         uiPrint_P(0, 1, F("  BEEHIVE MONITOR   "));
-        uiPrint_P(0, 2, F("        v28         "));
+        uiPrint_P(0, 2, F("        v29         "));
         uiPrint_P(0, 3, F("===================="));
     } else {
         uiPrint_P(0, 0, F("===================="));
         lcdPrintGreek_P(F(" ΠΑΡΑΚΟΛΟΥΘΗΣΗ      "), 0, 1);
-        lcdPrintGreek_P(F("  ΚΥΨΕΛΗΣ v28       "), 0, 2);
+        lcdPrintGreek_P(F("  ΚΥΨΕΛΗΣ v29       "), 0, 2);
         uiPrint_P(0, 3, F("===================="));
     }
 
     while (millis() - splashStart < SPLASH_TIMEOUT) {
+        server.handleClient();
         if (getButton() != BTN_NONE) break;
         delay(20);
     }

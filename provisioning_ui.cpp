@@ -9,32 +9,158 @@
 // Namespace used elsewhere in network_manager
 static const char *PREF_WIFI_NS = "beehive";
 
+#include <WebServer.h>
+extern WebServer server;
+
 // ------------------------------------------------------------------
-// Simple UI entrypoint used by menu_manager: ask user to open web UI
+// Helper: Manual text entry (letter by letter)
+// Returns entered text, or empty string if cancelled
+// Long SELECT press finishes entry
+// ------------------------------------------------------------------
+static String manualTextEntry(const char* prompt, int maxLen) {
+  const char charset[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz-";
+  const int charsetLen = strlen(charset);
+  
+  String result = "";
+  int charIndex = 0; // current character in charset
+  int cursorPos = 0; // position in result string
+  
+  auto drawScreen = [&]() {
+    uiClear();
+    uiPrint(0, 0, prompt);
+    
+    // Show current text being built with cursor
+    char line[24];
+    if (result.length() == 0) {
+      snprintf(line, sizeof(line), ">_");
+    } else {
+      snprintf(line, sizeof(line), ">%s_", result.c_str());
+    }
+    uiPrint(0, 1, line);
+    
+    // Show current character selection
+    char charLine[24];
+    snprintf(charLine, sizeof(charLine), "Char: %c", charset[charIndex]);
+    uiPrint(0, 2, charLine);
+    
+    uiPrint(0, 3, "UP/DN SEL+ LONGSEL=Done");
+    uiRefreshMirror();
+  };
+  
+  drawScreen();
+  
+  // Long press detection
+  unsigned long selectPressStart = 0;
+  bool selectPressed = false;
+  const unsigned long longPressDuration = 800; // ms
+  
+  while (true) {
+    server.handleClient();
+    // Check for long SELECT press
+    if (digitalRead(BTN_SELECT) == LOW) {
+      if (!selectPressed) {
+        selectPressed = true;
+        selectPressStart = millis();
+      } else {
+        // Check if held long enough
+        if (millis() - selectPressStart >= longPressDuration) {
+          // Long press detected - finish entry
+          if (result.length() > 0) {
+            return result;
+          }
+        }
+      }
+    } else {
+      selectPressed = false;
+    }
+    
+    Button b = getButton();
+    
+    if (b == BTN_UP_PRESSED) {
+      charIndex++;
+      if (charIndex >= charsetLen) charIndex = 0;
+      drawScreen();
+    }
+    else if (b == BTN_DOWN_PRESSED) {
+      charIndex--;
+      if (charIndex < 0) charIndex = charsetLen - 1;
+      drawScreen();
+    }
+    else if (b == BTN_SELECT_PRESSED) {
+      // Short press: add character at current position
+      if (result.length() < maxLen) {
+        result += charset[charIndex];
+        charIndex = 0; // reset to 'A'
+        drawScreen();
+      }
+    }
+    else if (b == BTN_BACK_PRESSED) {
+      // Backspace: remove last character, or cancel if empty
+      if (result.length() > 0) {
+        result.remove(result.length() - 1);
+        drawScreen();
+      } else {
+        return ""; // cancelled
+      }
+    }
+    
+    delay(50);
+  }
+}
+
+// ------------------------------------------------------------------
+// UI entrypoint: Direct manual entry for City and Country
+// Long SELECT press switches from City to Country, then saves
 // ------------------------------------------------------------------
 void provisioning_ui_enterCityCountry() {
+  // Phase 1: Enter City
   uiClear();
-  if (currentLanguage == LANG_EN) {
-    uiPrint(0,0,"OPEN BROWSER TO      ");
-    uiPrint(0,1,"http://192.168.1.10:8080/");
-    uiPrint(0,2,"ENTER CRED THEN SAVE ");
-    uiPrint(0,3,getTextEN(TXT_BACK_SMALL));
-  } else {
-    lcdPrintGreek_P(F("ΑΝΟΙΞΤΕ BROWSER:"), 0, 0);
-    lcdPrintGreek("http://192.168.1.10:8080/", 0, 1);
-    lcdPrintGreek_P(F("ΕΙΣΑΓΕΤΕ ΚΑΙ SAVE"), 0, 2);
-    lcdPrintGreek(getTextGR(TXT_BACK_SMALL), 0, 3);
+  uiPrint(0, 0, "GEOLOCATION ENTRY   ");
+  uiPrint(0, 1, "Enter City name     ");
+  uiPrint(0, 2, "LONGSEL to continue ");
+  uiPrint(0, 3, "BACK to cancel      ");
+  uiRefreshMirror();
+  delay(1500);
+  
+  String city = manualTextEntry("Enter City:", 19);
+  if (city.length() == 0) {
+    // Cancelled
+    menuDraw();
+    return;
   }
-
-  // Wait for user to press BACK/SELECT to return to menu
-  while (true) {
-    Button b = getButton();
-    if (b == BTN_BACK_PRESSED || b == BTN_SELECT_PRESSED) {
-      menuDraw();
-      return;
-    }
-    delay(80);
+  
+  // Phase 2: Enter Country
+  uiClear();
+  uiPrint(0, 0, "GEOLOCATION ENTRY   ");
+  uiPrint(0, 1, "Enter Country name  ");
+  uiPrint(0, 2, "LONGSEL to save     ");
+  uiPrint(0, 3, "BACK to cancel      ");
+  uiRefreshMirror();
+  delay(1500);
+  
+  String country = manualTextEntry("Enter Country:", 19);
+  // Country can be empty (optional)
+  
+  // Save to preferences
+  Preferences p;
+  p.begin("beehive", false);
+  p.putString("loc_name", city);
+  p.putString("loc_country", country);
+  p.end();
+  
+  // Show confirmation
+  uiClear();
+  uiPrint(0, 0, "SAVED!              ");
+  char line[24];
+  snprintf(line, sizeof(line), "City: %s", city.c_str());
+  uiPrint(0, 1, line);
+  if (country.length() > 0) {
+    snprintf(line, sizeof(line), "Country: %s", country.c_str());
+    uiPrint(0, 2, line);
   }
+  uiRefreshMirror();
+  delay(2000);
+  menuDraw();
 }
 
 // ------------------------------------------------------------------

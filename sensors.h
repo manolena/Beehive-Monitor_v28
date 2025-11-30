@@ -13,10 +13,12 @@ bool sensors_init();
 bool sensors_update();
 
 // Optional: explicit functions to read/refresh individual sensors
+// Optional: explicit functions to read/refresh individual sensors
 bool sensors_update_loadcell();   // updates test_weight
 bool sensors_update_internal();   // updates test_temp_int/test_hum_int
 bool sensors_update_external();   // updates test_temp_ext/test_hum_ext/test_pressure
-bool sensors_update_accel();      // updates test_acc_x/_y/_z
+bool sensors_update_accel();      // updates test_acc_x/_y/_z and checks alarm
 bool sensors_update_battery();    // updates test_batt_voltage/test_batt_percent
+bool sensors_update_gps();        // updates test_lat/test_lon from modem
 
 // If you add more sensor-specific APIs, declare them here.

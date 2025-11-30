@@ -23,10 +23,10 @@ String lcd_get_line_simple(uint8_t row) {
 
 void lcd_set_line_simple(uint8_t row, const String &line) {
   if (row >= 4) return;
-  // Normalize to exactly 20 chars (pad or truncate)
+  // Allow up to 60 bytes for UTF-8 (20 chars * 3 bytes max)
   String s = line;
-  if (s.length() > 20) s = s.substring(0, 20);
-  while (s.length() < 20) s += ' ';
+  if (s.length() > 60) s = s.substring(0, 60);
+  // Do not pad with spaces here, trust the caller (menu_manager) to pad visually
   mirror_lines[row] = s;
   // Intentionally no Serial prints here - mirror debug output removed
 }

@@ -1,12 +1,4 @@
-#include "lcd_endpoint.h"
-#include <WebServer.h>
-#include <HTTPClient.h>
-#include <Preferences.h>
-#include "lcd_server_simple.h"
-#include "provisioning_server.h"
-#include <WiFi.h>
 
-static String html_page = R"rawliteral(
 <!doctype html>
 <html>
 <head>
@@ -116,7 +108,7 @@ static String html_page = R"rawliteral(
   </div>
 
   <div class="panel">
-    <div class="sectionTitle">LCD Mirror (4x20)</div>
+    <div class="sectionTitle">LCD Mirror (2x20)</div>
     <div class="lcd-wrap">
       <div class="lcd" id="lcdScreen" role="region" aria-label="LCD mirror">
         <div class="row" id="r0">                    </div>
@@ -124,7 +116,7 @@ static String html_page = R"rawliteral(
         <div class="row" id="r2">                    </div>
         <div class="row" id="r3">                    </div>
       </div>
-      <div class="labelRow">Device LCD 4 × 20 — updates every 250 ms</div>
+      <div class="labelRow">Device LCD 2 × 20 — updates every 250 ms</div>
     </div>
   </div>
 
@@ -190,6 +182,11 @@ async function fillFromDevice() {
   } catch(e) { /* ignore */ }
 }
 
+function cleanLine(s) {
+  if (!s) return '';
+  return s.replace(/[^\x20-\x7E]/g,'');
+}
+
 async function pollLCD(){
   try {
     const r = await fetch('/lcd.json?ts=' + Date.now(), { cache: 'no-cache' });
@@ -204,10 +201,10 @@ async function pollLCD(){
       } else if (j.lines && typeof j.lines === 'string') {
         arr = j.lines.split(/\r?\n/);
       }
-      // normalize to 4 lines - preserve UTF-8 characters
+      // normalize to 4 lines
       for (let i=0;i<4;i++) {
         let v = (arr[i]||'').toString();
-        // No character filtering - preserve UTF-8 for Greek and special chars
+        v = cleanLine(v);
         if (v.length > 20) v = v.substring(0,20);
         while (v.length < 20) v += ' ';
         document.getElementById('r' + i).textContent = v;
@@ -223,160 +220,3 @@ pollLCD();
 </script>
 </body>
 </html>
-)rawliteral";
-
-static String urlEncode(const String &str) {
-  String encoded = "";
-  char buf[8];
-  for (size_t i = 0; i < str.length(); ++i) {
-    char c = str[i];
-    if ( ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || ('0' <= c && c <= '9') || c=='-' || c=='_' || c=='.' || c=='~') {
-      encoded += c;
-    } else if (c == ' ') {
-      encoded += '+';
-    } else {
-      snprintf(buf, sizeof(buf), "%%%02X", (uint8_t)c);
-      encoded += buf;
-    }
-  }
-  return encoded;
-}
-
-void lcd_register(WebServer &server) {
-  // Root UI page
-  server.on("/", HTTP_GET, [&server]() {
-    server.send(200, "text/html", html_page);
-  });
-
-  // LCD JSON (polling)
-  server.on("/lcd.json", HTTP_GET, [&server]() {
-    String lines[4];
-    for(int i=0; i<4; i++) {
-      lines[i] = lcd_get_line_simple(i);
-      // Send exactly what is stored (UTF-8 strings from menu_manager)
-    }
-
-    String js = "{";
-    js += "\"lines\":[";
-    for(int i=0; i<4; i++) {
-      js += "\"" + lines[i] + "\"";
-      if(i < 3) js += ",";
-    }
-    js += "]";
-    js += "}";
-    server.send(200, "application/json", js);
-  });
-
-  // WiFi JSON (read-only safe view)
-  server.on("/wifi.json", HTTP_GET, [&server]() {
-    Preferences pref;
-    pref.begin("beehive", true);
-    String s1 = pref.getString("ssid1", "");
-    String s2 = pref.getString("ssid2", "");
-    pref.end();
-    String js = "{";
-    js += "\"ssid1\":\"" + s1 + "\",";
-    js += "\"ssid2\":\"" + s2 + "\"";
-    js += "}";
-    server.send(200, "application/json", js);
-  });
-
-  // Set location: POST form fields 'city' and 'country'
-  server.on("/set_location", HTTP_POST, [&server]() {
-    String city = server.arg("city");
-    String country = server.arg("country");
-
-    if (city.length() < 1) {
-      server.send(400, "application/json", "{\"ok\":false,\"error\":\"city required\"}");
-      return;
-    }
-
-    // Attempt geocoding via Nominatim (OpenStreetMap)
-    String lat = "";
-    String lon = "";
-    String displayName = city;
-    if (country.length()) displayName += ", " + country;
-
-    HTTPClient http;
-    String url = "https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" + urlEncode(city + (country.length() ? (", " + country) : ""));
-    bool geoOk = false;
-    if (WiFi.status() == WL_CONNECTED) {
-      http.begin(url);
-      http.setUserAgent("BeehiveMonitor/1.0 (+https://example.local)");
-      int code = http.GET();
-      if (code == 200) {
-        String payload = http.getString();
-        int pLat = payload.indexOf("\"lat\"");
-        int pLon = payload.indexOf("\"lon\"");
-        if (pLat >= 0) {
-          int q1 = payload.indexOf('"', pLat + 5);
-          int q2 = payload.indexOf('"', q1 + 1);
-          if (q1 >= 0 && q2 > q1) {
-            String tmp = payload.substring(q1+1, q2);
-            tmp.trim();
-            lat = tmp;
-          }
-        }
-        if (pLon >= 0) {
-          int q1 = payload.indexOf('"', pLon + 5);
-          int q2 = payload.indexOf('"', q1 + 1);
-          if (q1 >= 0 && q2 > q1) {
-            String tmp = payload.substring(q1+1, q2);
-            tmp.trim();
-            lon = tmp;
-          }
-        }
-        if (lat.length() && lon.length()) geoOk = true;
-      }
-      http.end();
-    }
-
-    // Save preferences
-    Preferences pref;
-    pref.begin("beehive", false);
-    pref.putString("loc_name", city);
-    pref.putString("loc_country", country);
-    if (geoOk) {
-      pref.putString("owm_lat", lat);
-      pref.putString("owm_lon", lon);
-    } else {
-      pref.remove("owm_lat");
-      pref.remove("owm_lon");
-    }
-    pref.end();
-
-    String out = "{ \"ok\": true, \"loc\": \"" + displayName + "\"";
-    if (geoOk) out += ", \"lat\":\"" + lat + "\", \"lon\":\"" + lon + "\"";
-    out += " }";
-    server.send(200, "application/json", out);
-  });
-
-  // Set Wi-Fi credentials: POST ssid1,pass1,ssid2,pass2
-  server.on("/set_wifi", HTTP_POST, [&server]() {
-    String ssid1 = server.arg("ssid1");
-    String pass1 = server.arg("pass1");
-    String ssid2 = server.arg("ssid2");
-    String pass2 = server.arg("pass2");
-
-    if (ssid1.length() < 1 && ssid2.length() < 1) {
-      server.send(400, "application/json", "{\"ok\":false,\"error\":\"no ssid provided\"}");
-      return;
-    }
-
-    Preferences pref;
-    pref.begin("beehive", false);
-    if (ssid1.length()) pref.putString("ssid1", ssid1);
-    if (pass1.length()) pref.putString("pass1", pass1);
-    if (ssid2.length()) pref.putString("ssid2", ssid2);
-    if (pass2.length()) pref.putString("pass2", pass2);
-    pref.end();
-
-    String out = "{ \"ok\": true }";
-    server.send(200, "application/json", out);
-  });
-
-  // Optional: fallback 404 for unknown
-  server.onNotFound([&server]() {
-    server.send(404, "text/plain", "Not found");
-  });
-}

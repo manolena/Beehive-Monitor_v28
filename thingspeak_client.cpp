@@ -7,6 +7,12 @@
 
 // forward to attempt auto connect from stored WiFi credentials
 extern void wifi_connectFromPrefs(unsigned long timeoutMs);
+// forward to get user's network preference
+extern int getNetworkPreference();
+// forward to check if modem is registered
+extern bool modem_isNetworkRegistered();
+// forward to modem upload function
+extern bool thingspeak_post_via_modem(const String &postBody);
 
 // minimal URL-encode helper
 static String urlEncode(const String &str) {
@@ -72,21 +78,30 @@ static bool postViaWiFi(const String &postBody) {
 }
 
 bool sendToThingSpeak(const String &bodyPairs) {
-  // Build coordinates field from Preferences
-  Preferences p;
-  p.begin("beehive", true);
-  String latS = p.getString("owm_lat", "");
-  String lonS = p.getString("owm_lon", "");
-  p.end();
-  double lat = DEFAULT_LAT;
-  double lon = DEFAULT_LON;
-  if (latS.length() && lonS.length()) {
-    lat = latS.toDouble();
-    lon = lonS.toDouble();
+  // Build coordinates field from Globals (updated by GPS)
+  // If GPS is invalid (0,0), fall back to Preferences or Default.
+  double lat = test_lat;
+  double lon = test_lon;
+
+  // If globals are 0.0, try preferences (manual override)
+  if (lat == 0.0 && lon == 0.0) {
+    Preferences p;
+    p.begin("beehive", true);
+    String latS = p.getString("owm_lat", "");
+    String lonS = p.getString("owm_lon", "");
+    p.end();
+    if (latS.length() && lonS.length()) {
+      lat = latS.toDouble();
+      lon = lonS.toDouble();
+    } else {
+      lat = DEFAULT_LAT;
+      lon = DEFAULT_LON;
+    }
   }
+
   char latBuf[32], lonBuf[32];
-  snprintf(latBuf, sizeof(latBuf), "%.4f", lat);
-  snprintf(lonBuf, sizeof(lonBuf), "%.4f", lon);
+  snprintf(latBuf, sizeof(latBuf), "%.6f", lat);
+  snprintf(lonBuf, sizeof(lonBuf), "%.6f", lon);
   // coords as "lat lon" (space separated)
   String coords = String(latBuf) + String(" ") + String(lonBuf);
   // use existing urlEncode (which turns spaces -> +)
@@ -118,7 +133,30 @@ bool sendToThingSpeak(const String &bodyPairs) {
     return false;
   }
 
-// 2) Try to auto-connect to known WiFi briefly
+
+// 2) Check user preference - if LTE preferred, try LTE upload
+  int pref = getNetworkPreference();
+  if (pref == CONNECTIVITY_LTE) {
+    // User wants LTE - check if modem is connected
+    if (modem_isNetworkRegistered()) {
+#if ENABLE_DEBUG
+      Serial.println("[TS] User prefers LTE - attempting LTE upload");
+#endif
+      bool ok = thingspeak_post_via_modem(post);
+      if (ok) return true;
+#if ENABLE_DEBUG
+      Serial.println("[TS] LTE upload failed - enqueueing");
+#endif
+    } else {
+#if ENABLE_DEBUG
+      Serial.println("[TS] User prefers LTE but not connected - enqueueing");
+#endif
+    }
+    enqueuePost(bodyPairs);
+    return false;
+  }
+
+  // Try to auto-connect to known WiFi briefly
 #if ENABLE_DEBUG
   Serial.println("[TS] WiFi not connected - attempting auto-connect");
 #endif

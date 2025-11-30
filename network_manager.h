@@ -10,6 +10,7 @@ void manageAutoNetwork();
 bool wifi_connectFromPrefs(unsigned long timeoutMs = 8000);
 void tryStartLTE();
 void clearNetworkUserBlock();
+bool isUserActive(); // Returns true if user is interacting with menu
 
 // New: suppress modem auto-attach for short period (ms)
 void network_suppress_modem_attach_ms(unsigned long ms);

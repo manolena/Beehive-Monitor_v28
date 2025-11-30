@@ -17,5 +17,8 @@ bool thingspeak_upload_current();
 // Attempt to flush queued posts (will only try when WiFi is connected).
 void retryQueuedThingSpeak();
 
+// Post via modem/LTE (returns true on success)
+bool thingspeak_post_via_modem(const String &postBody);
+
 // Filename on SD for queued ThingSpeak posts (one per line)
 static const char *TS_QUEUE_FILENAME = "/ts_queue.txt";

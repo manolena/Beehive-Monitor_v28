@@ -7,6 +7,13 @@
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <time.h>
+#include "time_manager.h"
+#include "modem_manager.h"
+
+// For LTE weather fetching
+// For LTE weather fetching
+// TinyGsmClient.h is already included in modem_manager.h with correct defines
+// extern TinyGsm modem;  // This is wrong, use modem_get()
 
 Preferences prefs;
 
@@ -203,6 +210,8 @@ bool weather_geocodeLocation(const char* city, const char* countryCode) {
 
 // Fetch Open-Meteo forecast: hourly arrays, sample every 6 hours for next 72h
 static bool weather_fetch_open_meteo() {
+  Serial.println("[Weather] weather_fetch_open_meteo() ENTER");
+  
   // include humidity and surface_pressure in hourly arrays
   String url = String("https://api.open-meteo.com/v1/forecast?latitude=")
     + String(s_lat, 6) + "&longitude=" + String(s_lon, 6)
@@ -210,19 +219,29 @@ static bool weather_fetch_open_meteo() {
 
   Serial.print("[Weather] OpenMeteo Request URL: ");
   Serial.println(url);
+  Serial.print("[Weather] WiFi status: ");
+  Serial.println(WiFi.status());
 
   if (WiFi.status() != WL_CONNECTED) {
     s_lastError = "WiFi not connected";
-    Serial.println("[Weather] OpenMeteo fetch failed: WiFi not connected");
+    Serial.println("[Weather] OpenMeteo fetch SKIPPED: WiFi not connected (LTE mode?)");
+    Serial.println("[Weather] weather_fetch_open_meteo() EXIT (no WiFi)");
     return false;
   }
+  
+  Serial.println("[Weather] WiFi connected, proceeding with HTTP request...");
 
+  Serial.println("[Weather] Starting HTTPClient.GET() - THIS MAY BLOCK");
   HTTPClient http;
   http.begin(url);
+  http.setTimeout(10000);  // 10 second timeout
   int code = http.GET();
+  Serial.print("[Weather] HTTPClient.GET() completed, code=");
+  Serial.println(code);
   String body;
   if (code > 0) body = http.getString();
   http.end();
+  Serial.println("[Weather] HTTP request complete");
 
   if (code != 200) {
     s_lastError = String("HTTP_") + String(code) + ": " + body;
@@ -336,9 +355,276 @@ static bool weather_fetch_open_meteo() {
   return true;
 }
 
+// Fetch weather via LTE modem using TinyGSM HTTP client
+static bool weather_fetch_via_lte() {
+  Serial.println("[Weather] weather_fetch_via_lte() ENTER");
+  
+  if (!modem_isNetworkRegistered()) {
+    s_lastError = "LTE not registered";
+    Serial.println("[Weather] LTE not registered");
+    return false;
+  }
+  
+  // Build URL (use HTTPS for LTE)
+  String url = String("https://api.open-meteo.com/v1/forecast?latitude=")
+    + String(s_lat, 6) + "&longitude=" + String(s_lon, 6)
+    + "&hourly=temperature_2m,weathercode,relativehumidity_2m,surface_pressure&forecast_days=3&timezone=auto";
+  
+  Serial.print("[Weather] LTE Request URL: ");
+  Serial.println(url);
+  
+  // Parse URL for TinyGSM
+  String urlStr = String(url);
+  int hostStart = urlStr.indexOf("//") + 2;
+  int pathStart = urlStr.indexOf("/", hostStart);
+  String host = urlStr.substring(hostStart, pathStart);
+  String path = urlStr.substring(pathStart);
+  
+  Serial.print("[Weather] Host: ");
+  Serial.println(host);
+  Serial.print("[Weather] Path: ");
+  Serial.println(path);
+  
+  // Get modem instance and create client (Standard client, we will enable SSL manually)
+  TinyGsm& modem = modem_get();
+  TinyGsmClient client(modem);
+  
+  // Connect to server
+  Serial.println("[Weather] Connecting to server via LTE (HTTPS Manual)...");
+  
+  // Debug signal quality
+  int csq = modem.getSignalQuality();
+  Serial.print("[Weather] Signal Quality (CSQ): ");
+  Serial.println(csq);
+  
+  // Ensure GPRS is connected
+  if (!modem.isGprsConnected()) {
+    Serial.println("[Weather] GPRS not connected, attempting to connect...");
+    if (!modem.gprsConnect(MODEM_APN)) {
+       Serial.println("[Weather] GPRS connect failed");
+       s_lastError = "GPRS connect failed";
+       return false;
+    }
+    Serial.println("[Weather] GPRS connected");
+  }
+  
+  // MANUAL SSL ENABLE FOR A7670/SIM7600
+  // This tells the modem to use SSL for the next TCP connection
+  Serial.println("[Weather] Enabling SSL (AT+CIPSSL=1)...");
+  
+  // Configure SSL context 0 to use TLS 1.2 (3) or ANY (0)
+  // A7670 might need this
+  modem.sendAT("+CSSLCFG=\"sslversion\",0,3"); 
+  modem.waitResponse();
+  
+  modem.sendAT("+CIPSSL=1");
+  if (modem.waitResponse() != 1) {
+     Serial.println("[Weather] Warning: AT+CIPSSL=1 failed or ignored");
+  }
+  
+  // Connect to port 443 for HTTPS
+  if (!client.connect(host.c_str(), 443)) {
+    s_lastError = "LTE HTTPS connect failed";
+    Serial.println("[Weather] LTE HTTPS connection to server failed");
+    return false;
+  }
+  
+  Serial.println("[Weather] Connected, sending HTTP GET...");
+  
+  // Send HTTP GET request
+  client.print(String("GET ") + path + " HTTP/1.1\r\n");
+  client.print(String("Host: ") + host + "\r\n");
+  client.print("Connection: close\r\n\r\n");
+  
+  // Wait for response
+  unsigned long timeout = millis();
+  while (client.connected() && millis() - timeout < 15000) {
+    if (client.available()) break;
+    delay(10);
+  }
+  
+  if (!client.available()) {
+    s_lastError = "LTE timeout";
+    Serial.println("[Weather] LTE response timeout");
+    client.stop();
+    return false;
+  }
+  
+  Serial.println("[Weather] Reading response headers...");
+  
+  // Skip HTTP headers - look for empty line (just \r\n)
+  bool headersEnd = false;
+  String line;
+  while (client.connected() || client.available()) {
+    if (!client.available()) {
+      delay(10);
+      continue;
+    }
+    
+    line = client.readStringUntil('\n');
+    line.trim();  // Remove \r and whitespace
+    
+    Serial.print("[Weather] Header: ");
+    Serial.println(line.length() == 0 ? "(empty - end of headers)" : line.substring(0, min(50, (int)line.length())));
+    
+    if (line.length() == 0) {
+      // Empty line = end of headers
+      headersEnd = true;
+      break;
+    }
+  }
+  
+  if (!headersEnd) {
+    s_lastError = "Invalid HTTP response";
+    Serial.println("[Weather] Invalid HTTP response - headers not found");
+    client.stop();
+    return false;
+  }
+  
+  // Read JSON body
+  Serial.println("[Weather] Reading JSON body...");
+  String body = "";
+  body.reserve(4096);  // Pre-allocate for efficiency
+  
+  while (client.connected() || client.available()) {
+    if (client.available()) {
+      char c = client.read();
+      body += c;
+    } else {
+      delay(10);
+    }
+    
+    // Safety check - stop if body gets too large
+    if (body.length() > 30000) {
+      Serial.println("[Weather] Body too large, stopping read");
+      break;
+    }
+  }
+  
+  client.stop();
+  
+  Serial.print("[Weather] JSON length: ");
+  Serial.println(body.length());
+  
+  if (body.length() < 100) {
+    s_lastError = "Empty response";
+    Serial.println("[Weather] Response too short");
+    return false;
+  }
+  
+  // Parse JSON (same as WiFi version)
+  const size_t CAP = 28 * 1024;
+  DynamicJsonDocument doc(CAP);
+  DeserializationError derr = deserializeJson(doc, body);
+  
+  if (derr) {
+    s_lastError = String("JSON parse: ") + String(derr.c_str());
+    Serial.print("[Weather] JSON parse error: ");
+    Serial.println(derr.c_str());
+    return false;
+  }
+  
+  // Parse hourly data (same logic as WiFi version)
+  JsonObject hourly = doc["hourly"];
+  if (!hourly) {
+    s_lastError = "No hourly data";
+    Serial.println("[Weather] No hourly object");
+    return false;
+  }
+  
+  JsonArray times = hourly["time"];
+  JsonArray temps = hourly["temperature_2m"];
+  JsonArray codes = hourly["weathercode"];
+  JsonArray hums  = hourly["relativehumidity_2m"];
+  JsonArray press = hourly["surface_pressure"];
+  
+  if (!times || !temps || !codes) {
+    s_lastError = "Missing arrays";
+    Serial.println("[Weather] Missing required arrays");
+    return false;
+  }
+  
+  int total = times.size();
+  Serial.print("[Weather] Total hourly samples: ");
+  Serial.println(total);
+  
+  if (total == 0) {
+    s_lastError = "No samples";
+    return false;
+  }
+  
+  // Sample every 6 hours
+  const int maxSamples = 12;
+  if (s_days) delete[] s_days;
+  s_days = new WeatherDay[maxSamples];
+  s_daysCount = 0;
+  
+  int samples = 0;
+  for (int i = 0; i < total && samples < maxSamples; i += 6) {
+    const char* tstr = times[i];
+    double temp = temps[i];
+    int wc = codes[i];
+    double hum = (hums && i < (int)hums.size()) ? (double)hums[i] : NAN;
+    double pr  = (press && i < (int)press.size()) ? (double)press[i] : NAN;
+    
+    if (!tstr) continue;
+    
+    char dbuf[32];
+    snprintf(dbuf, sizeof(dbuf), "%s", tstr);
+    s_days[samples].date = String(dbuf);
+    s_days[samples].temp_min = (float)temp;
+    s_days[samples].temp_max = (float)temp;
+    s_days[samples].humidity = isnan(hum) ? 0.0f : (float)hum;
+    s_days[samples].pressure = isnan(pr) ? 0.0f : (float)pr;
+    s_days[samples].desc = mapWeatherCodeOpenMeteo(wc);
+    samples++;
+  }
+  
+  if (samples == 0) {
+    s_lastError = "No samples parsed";
+    Serial.println("[Weather] No samples parsed");
+    delete[] s_days;
+    s_days = nullptr;
+    s_daysCount = 0;
+    s_hasData = false;
+    return false;
+  }
+  
+  s_daysCount = samples;
+  s_hasData = true;
+  Serial.print("[Weather] LTE fetch successful, samples=");
+  Serial.println(s_daysCount);
+  return true;
+}
+
 bool weather_fetch() {
 #if USE_OPENMETEO
-  return weather_fetch_open_meteo();
+  // Check which network is active and choose appropriate method
+  bool wifiOK = (WiFi.status() == WL_CONNECTED);
+  
+  Serial.println("[Weather] weather_fetch() called");
+  Serial.print("[Weather] WiFi: ");
+  Serial.println(wifiOK ? "connected" : "disconnected");
+  
+  if (wifiOK) {
+    // Only use WiFi for weather fetch
+    Serial.println("[Weather] Using WiFi for weather fetch");
+    bool success = weather_fetch_open_meteo();
+    
+    if (success) {
+      Serial.print("[Weather] Fetch successful, ");
+      Serial.print(s_daysCount);
+      Serial.println(" samples");
+    } else {
+      Serial.print("[Weather] Fetch failed: ");
+      Serial.println(s_lastError);
+    }
+    return success;
+  } else {
+    s_lastError = "WiFi not connected (LTE weather disabled)";
+    Serial.println("[Weather] WiFi not connected - skipping weather fetch");
+    return false;
+  }
 #else
   s_lastError = "OpenMeteo disabled in config.h";
   Serial.println("[Weather] No provider enabled");

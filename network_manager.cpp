@@ -2,8 +2,11 @@
 #include "config.h"
 #include <WiFi.h>
 #include <Preferences.h>
+#include <WebServer.h>
 #include "modem_manager.h"
 #include "key_server.h"
+
+extern WebServer server;
 
 static const char* PREF_APP_NS = "beehive_app";
 static const char* PREF_WIFI_NS = "beehive";
@@ -12,12 +15,17 @@ static const char* PREF_WIFI_NS = "beehive";
 enum NetMode { NET_NONE = 0, NET_LTE = 1, NET_WIFI = 2 };
 
 static NetMode currentNet = NET_NONE;
+int connectivityMode = CONNECTIVITY_OFFLINE; // Global definition
 static int net_pref = 0;
 static unsigned long lastAutoTry = 0;
 
 // Block automatic switches for a short time after user action (ms)
 static unsigned long userActionBlockUntil = 0;
-static const unsigned long USER_ACTION_BLOCK_MS = 15000UL;
+#define USER_ACTION_BLOCK_MS 15000
+
+bool isUserActive() {
+  return (millis() < userActionBlockUntil);
+}
 
 // If true indicates user explicitly forced a preference and we should
 // avoid auto logic that would override it. Persisted across reboots.
@@ -58,10 +66,12 @@ bool wifi_connectFromPrefs(unsigned long timeoutMs) {
     WiFi.begin(ssid.c_str(), psk.c_str());
     unsigned long start = millis();
     while (WiFi.status() != WL_CONNECTED && millis() - start < timeoutMs) {
-      delay(200);
+      server.handleClient();  // Keep web server responsive
+      delay(50);              // Reduced from 200ms to minimize blocking
     }
     if (WiFi.status() == WL_CONNECTED) {
       currentNet = NET_WIFI;
+      connectivityMode = CONNECTIVITY_WIFI;
       Serial.println(F("[NET] WiFi connected from prefs"));
       return true;
     }
@@ -101,10 +111,12 @@ static bool tryStartLTE_internal() {
     Serial.println(F("[LTE] GPRS attach OK"));
     keyServer_stop();
     currentNet = NET_LTE;
+    connectivityMode = CONNECTIVITY_LTE;
     return true;
   } else {
     Serial.println(F("[LTE] GPRS attach failed"));
     currentNet = NET_NONE;
+    connectivityMode = CONNECTIVITY_OFFLINE;
     return false;
   }
 }
@@ -139,19 +151,34 @@ void setNetworkPreference(int newPref) {
     Serial.println(F("[NET] Preference unchanged - refreshing user-action block"));
     userActionBlockUntil = millis() + USER_ACTION_BLOCK_MS;
     persistUserForcedFlag(true);
-    // Also ensure modem suppression so any background attach doesn't fight the user's recent action
-    // Extended suppression and attempt immediate WiFi connect to honor user's reaffirmation.
-    network_suppress_modem_attach_ms(120000);
-    Serial.println(F("[NET] Preference reaffirmed by user - attempting immediate WiFi connect and suppressing modem attach"));
-    // If modem is registered, disconnect GPRS before trying WiFi to avoid races.
-    if (modem_isNetworkRegistered()) {
-      Serial.println(F("[NET] Disconnecting modem GPRS before WiFi attempt"));
-      modem_get().gprsDisconnect();
-      delay(200);
+    
+    // Reaffirmation logic:
+    if (net_pref == CONNECTIVITY_WIFI) {
+      // Extended suppression and attempt immediate WiFi connect to honor user's reaffirmation.
+      network_suppress_modem_attach_ms(120000);
+      Serial.println(F("[NET] Preference reaffirmed (WiFi) - attempting immediate WiFi connect"));
+      // If modem is registered, disconnect GPRS before trying WiFi to avoid races.
+      if (modem_isNetworkRegistered()) {
+        Serial.println(F("[NET] Disconnecting modem GPRS before WiFi attempt"));
+        modem_get().gprsDisconnect();
+        delay(200);
+      }
+      bool ok = wifi_connectFromPrefs(10000);
+      if (ok) Serial.println(F("[NET] WiFi connected per user reaffirm"));
+      else Serial.println(F("[NET] Immediate WiFi connect failed after reaffirm"));
+    } else if (net_pref == CONNECTIVITY_LTE) {
+      Serial.println(F("[NET] Preference reaffirmed (LTE) - ensuring WiFi OFF and LTE ON"));
+      // Ensure WiFi is off for LTE-only mode
+      if (WiFi.status() == WL_CONNECTED || WiFi.mode(WIFI_MODE_NULL) != WIFI_OFF) {
+         WiFi.disconnect(true);
+         WiFi.mode(WIFI_OFF);
+         delay(100);
+      }
+      // Ensure LTE is on
+      if (!modem_isNetworkRegistered()) {
+         tryStartLTE_internal();
+      }
     }
-    bool ok = wifi_connectFromPrefs(10000);
-    if (ok) Serial.println(F("[NET] WiFi connected per user reaffirm"));
-    else Serial.println(F("[NET] Immediate WiFi connect failed after reaffirm"));
     return;
   }
 
@@ -197,13 +224,19 @@ void setNetworkPreference(int newPref) {
 
   // LTE chosen explicitly
   if (net_pref == CONNECTIVITY_LTE) {
-    Serial.println(F("[NET] User chose LTE - attempting LTE"));
-    // if WiFi connected, stop it
-    if (WiFi.status() == WL_CONNECTED) { WiFi.disconnect(true); WiFi.mode(WIFI_OFF); }
+    Serial.println(F("[NET] User chose LTE - LTE-only mode (remote operation)"));
+    // Turn off WiFi for LTE-only remote operation
+    WiFi.disconnect(true);
+    WiFi.mode(WIFI_OFF);
+    delay(100);
+    
     bool ok = tryStartLTE_internal();
     if (!ok) {
       Serial.println(F("[NET] LTE requested but attach failed"));
+    } else {
+      Serial.println(F("[NET] LTE-only mode active - weather via LTE, no web interface"));
     }
+    
     // clearing forced flag if user explicitly requested LTE (we still persist pref)
     persistUserForcedFlag(false);
     return;
@@ -212,6 +245,7 @@ void setNetworkPreference(int newPref) {
   // OFFLINE (or other): reset timers and keep both off
   lastAutoTry = 0;
   currentNet = NET_NONE;
+  connectivityMode = CONNECTIVITY_OFFLINE;
   if (WiFi.status() == WL_CONNECTED) { WiFi.disconnect(true); WiFi.mode(WIFI_OFF); }
   if (modem_isNetworkRegistered()) modem_get().gprsDisconnect();
   Serial.println(F("[NET] Network set to OFFLINE by user"));
@@ -272,6 +306,7 @@ void manageAutoNetwork() {
   if (WiFi.status() == WL_CONNECTED) {
     if (currentNet != NET_WIFI) {
       currentNet = NET_WIFI;
+      connectivityMode = CONNECTIVITY_WIFI;
       if (modem_isNetworkRegistered()) modem_get().gprsDisconnect();
       delay(100);
     }

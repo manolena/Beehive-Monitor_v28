@@ -16,6 +16,9 @@ struct MenuItem {
 
 void menuInit();
 void menuDraw();
+void menuInit();
+void menuDraw();
 void menuUpdate();
+void menuShowDataSending();
 
 #endif

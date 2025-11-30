@@ -49,8 +49,8 @@
 #define MODEM_PWR      4
 
 // Buttons
-#define BTN_UP         23
-#define BTN_DOWN       12
+#define BTN_UP         12
+#define BTN_DOWN       23
 #define BTN_SELECT     33
 #define BTN_BACK       32
 
@@ -74,13 +74,13 @@
 
 // Dual WiFi compile-time defaults (can be overridden via build)
 #ifndef WIFI_SSID1
-#define WIFI_SSID1 " "
-#define WIFI_PASS1 " "
+#define WIFI_SSID1 "Redmi Note 13"
+#define WIFI_PASS1 "nen57asz5g44sh2"
 #endif
 
 #ifndef WIFI_SSID2
-#define WIFI_SSID2 " "
-#define WIFI_PASS2 " "
+#define WIFI_SSID2 "COSMOTE-32bssa"
+#define WIFI_PASS2 "vudvvc5x97s4afpk"
 #endif
 
 // Single global Preferences instance is defined in one .cpp (weather_manager.cpp).
@@ -144,6 +144,20 @@ extern int   test_rssi;
 // Default location (compile-time fallback only)
 #define DEFAULT_LAT       37.983810       // fallback: Athens latitude
 #define DEFAULT_LON       23.727539       // fallback: Athens longitude
+
+// =============================
+// Alarm & GPS Configuration
+// =============================
+#define ALARM_PHONE_NUMBER "+306943485544" // Placeholder - CHANGE ME
+#define ACCEL_THRESHOLD    2.0             // m/s^2 delta to trigger alarm
+//#define GPS_UPDATE_INTERVAL (3600UL * 1000UL) // 1 hour in ms
+#define GPS_UPDATE_INTERVAL (60UL * 1000UL) // 1 minute in ms
+
+// =============================
+// GPS Globals
+// =============================
+extern double test_lat;
+extern double test_lon;
 
 // Optional behavior toggles (local to project)
 #ifndef AUTOSTART_KEYSERVER

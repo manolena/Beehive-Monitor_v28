@@ -46,3 +46,10 @@ void sms_loop() {
   if (!modem_isNetworkRegistered()) return;
   sms_scan_now();
 }
+
+bool sms_send(String number, String message) {
+  TinyGsm &modem = modem_get();
+  // Ensure modem is ready/registered? 
+  // We try anyway.
+  return modem.sendSMS(number, message);
+}

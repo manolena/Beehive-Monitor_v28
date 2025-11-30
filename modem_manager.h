@@ -7,6 +7,7 @@
 // (taken from your original working project v20)
 // ---------------------------------------------------------------------
 #define TINY_GSM_MODEM_A7670        // <-- required for A7670 modules
+//#define TINY_GSM_MODEM_SIM7600      // Use SIM7600 to enable TinyGsmClientSecure (A7670 is compatible)
 #define TINY_GSM_RX_BUFFER   512
 
 #include <TinyGsmClient.h>
@@ -25,3 +26,9 @@ void modemManager_init();
 
 // Hardware init helper (power/reset/pwrkey sequence)
 void modem_hw_init();
+
+// ---------------------------------------------------------------------
+// GPS API
+// ---------------------------------------------------------------------
+bool modem_enableGPS(bool enable);
+bool modem_getGPS(double &lat, double &lon);
