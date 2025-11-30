@@ -530,12 +530,12 @@ void showSplashScreen() {
     if (currentLanguage == LANG_EN) {
         uiPrint_P(0, 0, F("===================="));
         uiPrint_P(0, 1, F("  BEEHIVE MONITOR   "));
-        uiPrint_P(0, 2, F("        v29         "));
+        uiPrint_P(0, 2, F("        v28         "));
         uiPrint_P(0, 3, F("===================="));
     } else {
         uiPrint_P(0, 0, F("===================="));
         lcdPrintGreek_P(F(" ΠΑΡΑΚΟΛΟΥΘΗΣΗ      "), 0, 1);
-        lcdPrintGreek_P(F("  ΚΥΨΕΛΗΣ v29       "), 0, 2);
+        lcdPrintGreek_P(F("  ΚΥΨΕΛΗΣ v28       "), 0, 2);
         uiPrint_P(0, 3, F("===================="));
     }
 
